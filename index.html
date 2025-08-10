@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimalist Clothing Product Page</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-bg-tint-r: 248;
+            --primary-bg-tint-g: 248;
+            --primary-bg-tint-b: 248;
+            --element-bg-alpha: 0.7;
+            --border-color-r: 224;
+            --border-color-g: 224;
+            --border-color-b: 224;
+            --border-alpha: 0.4;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Static light neutral background for the entire page */
+            background-color: #fcfcfc; 
+            color: #333;
+        }
+
+        /* Custom scrollbar for gallery thumbnails */
+        .thumbnail-scroll::-webkit-scrollbar {
+            height: 6px;
+        }
+        .thumbnail-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .thumbnail-scroll::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        .thumbnail-scroll::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Styles for info sections (always visible) - semi-transparent white with tinted border */
+        .info-section-content,
+        .fluid-element-bg, /* This class is used by popover, inline chart, credibility icons, review cards, related products */
+        .review-card { /* Explicitly target review card */
+            background-color: rgba(255, 255, 255, var(--element-bg-alpha));
+            /* Slightly increased border alpha for better visibility */
+            border: 1px solid rgba(var(--border-color-r), var(--border-color-g), var(--border-color-b), 0.5);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            margin-bottom: 1.5rem; /* Only for info-section-content */
+            transition: border-color 0.5s ease-in-out, background-color 0.5s ease-in-out;
+        }
+
+        /* Specific padding adjustment for product-section to prevent double padding if its children have padding */
+        .product-section, .reviews-section, .related-products-section, .high-res-gallery-section {
+            padding: 1.5rem; /* Maintain internal padding */
+            margin-bottom: 2.5rem; /* Add spacing between logical sections */
+        }
+
+        /* Main Product Image Section - Dynamically tinted background */
+        #product-image-section {
+            /* Increased alpha for a more noticeable tint */
+            background-color: rgba(var(--primary-bg-tint-r), var(--primary-bg-tint-g), var(--primary-bg-tint-b), 0.3);
+            /* Increased alpha for a more noticeable border */
+            border: 1px solid rgba(var(--border-color-r), var(--border-color-g), var(--border-color-b), 0.5);
+            border-radius: 8px;
+            padding: 1.5rem; /* Padding internal to this section's tinted background */
+            transition: background-color 0.5s ease-in-out, border-color 0.5s ease-in-out;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Soft shadow */
+            cursor: zoom-in; /* Indicate double-click action */
+        }
+
+        /* Style for the new 4K gallery images */
+        .high-res-image {
+            background-color: rgba(255, 255, 255, 0.6); /* Slightly more transparent for these, let body show through */
+            /* Slightly increased border alpha for better visibility */
+            border: 1px solid rgba(var(--border-color-r), var(--border-color-g), var(--border-color-b), 0.5);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .high-res-image:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        /* Add to Cart button animation */
+        .add-to-cart-btn.clicked {
+            animation: pulse-add-to-cart 0.3s ease-out;
+        }
+        @keyframes pulse-add-to-cart {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        /* Scroll to Top Button */
+        #scroll-to-top-btn {
+            display: none; /* Hidden by default */
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: rgba(var(--border-color-r), var(--border-color-g), var(--border-color-b), 0.7); /* Adaptive color */
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s, opacity 0.3s;
+            opacity: 0;
+            z-index: 999;
+        }
+        #scroll-to-top-btn:hover {
+            background-color: rgba(var(--border-color-r), var(--border-color-g), var(--border-color-b), 0.9);
+        }
+        #scroll-to-top-btn.show {
+            opacity: 1;
+        }
+
+        /* Loading Spinner for main image and modal image */
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #3498db; /* Blue spinner */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            display: none; /* Hidden by default */
+        }
+        .loading-spinner.show {
+            display: block;
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Full-Screen Image Modal Styles */
+        #full-screen-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000; /* Ensure it's on top of everything */
+            background-color: rgba(var(--primary-bg-tint-r), var(--primary-bg-tint-g), var(--primary-bg-tint-b), 0.8); /* Dynamic transparent background */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease, background-color 0.5s ease-in-out;
+        }
+        #full-screen-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content-wrapper {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #modal-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Ensure the whole image is visible */
+            transition: transform 0.2s ease-out;
+            cursor: grab; /* Indicate draggable for zoom */
+            border-radius: 8px; /* Rounded corners for the image */
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3); /* Stronger shadow for modal image */
+        }
+
+        #modal-image.zoomed {
+            cursor: grabbing;
+        }
+
+        /* Modal Navigation Buttons - Slicker appearance */
+        .modal-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(255, 255, 255, 0.2); /* Softer transparent background */
+            color: #fff; /* White arrows */
+            border: 1px solid rgba(255, 255, 255, 0.3); /* Subtle white border */
+            border-radius: 50%;
+            width: 45px; /* Slightly larger */
+            height: 45px; /* Slightly larger */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem; /* Larger arrow icon */
+            cursor: pointer;
+            z-index: 1010; 
+            transition: background-color 0.3s, color 0.3s, box-shadow 0.3s, border-color 0.3s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+        .modal-nav-btn:hover {
+            background-color: rgba(255, 255, 255, 0.5); /* More opaque on hover */
+            color: #333; /* Darker icon on hover */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+        #modal-prev-image { left: -60px; } /* Positioning outside the image for better visibility */
+        #modal-next-image { right: -60px; } /* Positioning outside the image for better visibility */
+
+        /* Modal Close Button - Fluid Glass appearance */
+        #modal-close-btn {
+            position: absolute;
+            top: -25px; /* Adjust position */
+            right: -25px; /* Adjust position */
+            background-color: rgba(255, 255, 255, 0.2); /* Transparent white background */
+            backdrop-filter: blur(8px); /* Frosted glass effect */
+            -webkit-backdrop-filter: blur(8px); /* Safari compatibility */
+            border: 1px solid rgba(255, 255, 255, 0.3); /* Subtle light border */
+            border-radius: 50%;
+            width: 45px; /* Slightly larger */
+            height: 45px; /* Slightly larger */
+            font-size: 1.5rem; /* Standard X size */
+            color: #333; /* Dark color for the X icon */
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1020; /* Highest z-index */
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        }
+        #modal-close-btn:hover {
+            background-color: rgba(255, 255, 255, 0.4); /* Slightly more opaque on hover */
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15); /* Enhanced shadow on hover */
+        }
+
+        /* Adjust modal button positions for smaller screens */
+        @media (max-width: 768px) {
+            #modal-prev-image { left: 10px; }
+            #modal-next-image { right: 10px; }
+            #modal-close-btn { top: 10px; right: 10px; }
+            .modal-nav-btn, #modal-close-btn {
+                width: 38px;
+                height: 38px;
+                font-size: 1.4rem;
+            }
+        }
+
+        /* New styles for round size buttons */
+        .size-option {
+            width: 44px; /* Fixed width for round button */
+            height: 44px; /* Fixed height for round button */
+            border-radius: 50%; /* Make it perfectly round */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500; /* Medium weight for minimalist look */
+            background-color: #fff; /* White background by default */
+            color: #333; /* Dark text */
+            transition: all 0.2s ease-in-out;
+        }
+
+        /* Selected state for round size buttons */
+        .size-option.selected { /* Changed class from .bg-blue-50 to .selected */
+            background-color: #e0f2fe; /* Light blue background for selected */
+            border-color: #3b82f6; /* Blue border for selected */
+            color: #1d4ed8; /* Darker blue text for selected */
+            font-weight: 600; /* Bolder for selected */
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2); /* Subtle shadow for selected */
+        }
+
+        /* Style for Size Chart button for mobile (already existed, but ensuring it blends) */
+        #size-chart-toggle-button {
+            background-color: #f0f4f8; /* Light greyish-blue background */
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            border: 1px solid #d1e0ed; /* Light border */
+            color: #3b82f6; /* Blue text */
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+        }
+        #size-chart-toggle-button:hover {
+            background-color: #e2effa; /* Slightly darker on hover */
+            border-color: #93c5fd;
+        }
+
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto p-4 md:p-8 lg:p-12 max-w-7xl">
+        <!-- Product Details Section (Left: Gallery, Right: Info, Selectors, Add to Cart, Credibility) -->
+        <div class="flex flex-col lg:flex-row gap-8 lg:gap-12 product-section">
+            <!-- Product Image Gallery (Main Carousel) - This section's background will be dynamically tinted -->
+            <div class="lg:w-1/2 flex flex-col gap-4" id="product-image-section">
+                <div class="relative overflow-hidden rounded-lg shadow-md aspect-w-16 aspect-h-9 md:aspect-h-12 lg:aspect-h-9" style="padding-bottom: 75%;">
+                    <img id="main-product-image" src="https://placehold.co/800x1000/F0F0F0/333333?text=Main+Image" alt="Main Product Image" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 ease-in-out">
+                    <div id="image-loading-spinner" class="loading-spinner"></div>
+                    <button id="prev-image" class="absolute left-3 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white rounded-full p-2 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <button id="next-image" class="absolute right-3 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white rounded-full p-2 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                </div>
+                <div id="thumbnail-gallery" class="flex overflow-x-auto gap-3 py-2 thumbnail-scroll">
+                    <!-- Thumbnails will be loaded here by JS -->
+                </div>
+            </div>
+
+            <!-- Product Information Block -->
+            <div class="lg:w-1/2 flex flex-col gap-6">
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Essential Organic Cotton T-Shirt</h1>
+                    <p class="text-xl md:text-2xl font-semibold text-gray-800 mb-4">$29.99</p>
+                    <div class="flex items-center text-yellow-500 mb-4">
+                        <span class="text-lg">★★★★★</span>
+                        <span class="text-gray-600 ml-2 text-sm">(4.8 / 128 Reviews)</span>
+                    </div>
+                    <p class="text-gray-700 leading-relaxed mb-4">
+                        Discover the perfect blend of **comfort** and *timeless style* with our Essential Organic Cotton T-Shirt. Expertly crafted from the finest organic fibers, this tee offers an **exceptionally soft feel** against your skin and a fit that flatters every silhouette. Designed for **everyday versatility**, it's more than just a basic – it's a foundation for your effortless style, destined to become a staple in your wardrobe for years to come. Experience the difference of premium quality and sustainable fashion.
+                    </p>
+                </div>
+
+                <!-- Size Selector -->
+                <div>
+                    <label for="size-select" class="block text-gray-800 text-lg font-medium mb-2">Size:</label>
+                    <div class="flex flex-wrap gap-3 relative" id="size-options-container">
+                        <button class="size-option border border-gray-300 hover:border-blue-500 hover:text-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500" data-size="S">S</button>
+                        <button class="size-option border border-gray-300 hover:border-blue-500 hover:text-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500" data-size="M">M</button>
+                        <button class="size-option border border-gray-300 hover:border-blue-500 hover:text-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500" data-size="L">L</button>
+                        <button class="size-option border border-gray-300 hover:border-blue-500 hover:text-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500" data-size="XL">XL</button>
+
+                        <!-- Size Chart Popover (for desktop hover) -->
+                        <div id="size-chart-popover" class="fluid-element-bg">
+                            <h3 class="font-semibold text-gray-800 mb-2">Size Chart</h3>
+                            <div id="popover-size-chart-content" class="overflow-x-auto"></div>
+                        </div>
+                    </div>
+                    <!-- Toggle button for inline size chart (mobile/tablet) -->
+                    <button id="size-chart-toggle-button" class="mt-4 text-sm focus:outline-none lg:hidden">View Size Chart</button>
+                    <!-- Inline size chart container (for mobile/tablet toggle) -->
+                    <div id="inline-size-chart-container" class="mt-4 fluid-element-bg">
+                        <h3 class="font-semibold text-gray-800 mb-2">Size Chart</h3>
+                        <div id="inline-size-chart-content" class="overflow-x-auto"></div>
+                    </div>
+                </div>
+
+                <!-- Color Selector -->
+                <div>
+                    <label for="color-select" class="block text-gray-800 text-lg font-medium mb-2">Color:</label>
+                    <div class="flex gap-3">
+                        <button class="color-option w-8 h-8 rounded-full border-2 border-transparent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all" style="background-color: #333;" data-color="black" title="Black"></button>
+                        <button class="color-option w-8 h-8 rounded-full border-2 border-transparent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all" style="background-color: #e0e0e0;" data-color="grey" title="Grey"></button>
+                        <button class="color-option w-8 h-8 rounded-full border-2 border-transparent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-500 transition-all" style="background-color: #c084fc;" data-color="purple" title="Purple"></button>
+                    </div>
+                </div>
+
+                <!-- Quantity Selector -->
+                <div>
+                    <label for="quantity" class="block text-gray-800 text-lg font-medium mb-2">Quantity:</label>
+                    <div class="flex items-center border border-gray-300 rounded-lg w-fit">
+                        <button id="decrease-quantity" class="px-3 py-1 text-gray-700 hover:bg-gray-100 rounded-l-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500">-</button>
+                        <input type="text" id="quantity" value="1" readonly class="w-12 text-center border-x border-gray-300 py-1 focus:outline-none text-gray-800 bg-white">
+                        <button id="increase-quantity" class="px-3 py-1 text-gray-700 hover:bg-gray-100 rounded-r-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500">+</button>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-4 mt-4">
+                    <button id="add-to-cart-btn" class="flex-1 bg-blue-600 text-white py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-300 add-to-cart-btn">
+                        Add to Cart
+                    </button>
+                    <button id="buy-now-btn" class="flex-1 bg-green-600 text-white py-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition-colors shadow-lg focus:outline-none focus:ring-4 focus:ring-green-300">
+                        Buy Now
+                    </button>
+                </div>
+
+                <!-- Credibility Icons Section -->
+                <div id="credibility-icons" class="mt-6 pt-6 border-t border-gray-200 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 text-center">
+                    <div class="flex flex-col items-center p-3 rounded-lg border border-gray-200 fluid-element-bg credibility-icon-item">
+                        <svg class="w-8 h-8 text-blue-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v2m-2-12v2m8-2v2m2 10v2M5 9h14a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9a2 2 0 012-2h0a2 2 0 012 2v2a2 2 0 01-2 2h0a2 2 0 01-2-2v-2z"></path></svg>
+                        <p class="text-sm font-medium text-gray-700">Fast & Reliable Delivery</p>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded-lg border border-gray-200 fluid-element-bg credibility-icon-item">
+                        <svg class="w-8 h-8 text-green-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.001 12.001 0 002.944 12c.047 2.062.593 4.139 1.493 6.136a11.96 11.96 0 0017.518 0c.9-.997 1.446-2.074 1.493-4.136A12.001 12.001 0 0021.056 12a11.955 11.955 0 01-3.04-8.618z"></path></svg>
+                        <p class="text-sm font-medium text-gray-700">100% Premium Cotton</p>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded-lg border border-gray-200 fluid-element-bg credibility-icon-item">
+                        <svg class="w-8 h-8 text-purple-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 15a4.718 4.718 0 004.897 4.718A4.718 4.718 0 0012 20.003c2.253 0 4.39-1.282 5.516-3.15A4.72 4.72 0 0021.75 15V9a4.718 4.718 0 00-4.897-4.718A4.718 4.718 0 0012 3.997c-2.253 0-4.39 1.282-5.516 3.15A4.72 4.72 0 002.25 9v6zM15 12H9"></path></svg>
+                        <p class="text-sm font-medium text-gray-700">High GSM & Breathable</p>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded-lg border border-gray-200 fluid-element-bg credibility-icon-item">
+                        <svg class="w-8 h-8 text-orange-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11.418 2h-.582m0 0a8.001 8.001 0 01-15.356 2m15.356-2H15"></path></svg>
+                        <p class="text-sm font-medium text-gray-700">Hassle-Free Returns</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- More Information Section -->
+        <div class="mt-12 pt-6 border-t border-gray-200">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-6">More Information</h2>
+            
+            <!-- Product Details -->
+            <div class="mb-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2 px-4 py-3 rounded-lg border border-gray-200 fluid-element-bg">Product Details</h3>
+                <div id="product-details-content" class="info-section-content text-gray-700 leading-relaxed">
+                    <ul class="list-disc list-inside space-y-2">
+                        <li>**Material:** 100% GOTS Certified Organic Combed Cotton</li>
+                        <li>**Fit:** Modern regular fit, designed for comfort and style</li>
+                        <li>**Neckline:** Durable ribbed crew neck, maintains shape</li>
+                        <li>**Sleeve Length:** Classic short sleeve, perfect for layering or stand-alone wear</li>
+                        <li>**Fabric Weight:** 180 GSM (grams per square meter) – *optimal balance of softness and durability* for year-round wear</li>
+                        <li>**Manufactured:** Responsibly and ethically in our certified partner factories in Portugal, ensuring high quality and fair labor practices</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Care Instructions -->
+            <div class="mb-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2 px-4 py-3 rounded-lg border border-gray-200 fluid-element-bg">Care Instructions</h3>
+                <div id="care-instructions-content" class="info-section-content text-gray-700 leading-relaxed">
+                    <ul class="list-disc list-inside space-y-2">
+                        <li>Machine wash cold with like colors to preserve fabric integrity</li>
+                        <li>Do not bleach to maintain color vibrancy</li>
+                        <li>Tumble dry low or, for best results, hang to dry to reduce energy consumption and extend garment life</li>
+                        <li>Iron on low heat if needed, avoiding direct contact with any prints</li>
+                        <li>Do not dry clean, as harsh chemicals can damage the organic cotton fibers</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Shipping & Returns -->
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2 px-4 py-3 rounded-lg border border-gray-200 fluid-element-bg">Shipping & Returns</h3>
+                <div id="shipping-returns-content" class="info-section-content text-gray-700 leading-relaxed">
+                    <p class="mb-2">**Shipping:** Enjoy **Standard Shipping (3-5 business days) FREE** on all orders over $50. Need it faster? Express shipping options are available at checkout for an *additional fee*.</p>
+                    <p>**Returns:** Shop with confidence! We offer **Hassle-Free Returns** within 30 days of purchase for unworn and unwashed items. Your satisfaction is our priority. See our full <a href="#" class="text-blue-600 hover:underline">Return Policy</a> for more details.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- High-Resolution Product Gallery Section -->
+        <div id="high-res-gallery" class="mt-12 high-res-gallery-section">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Explore Every Detail</h2>
+            <div class="flex flex-col gap-8">
+                <!-- Image placeholders will be dynamically loaded here by JS -->
+            </div>
+        </div>
+        
+        <!-- Reviews Section -->
+        <div class="mt-12 reviews-section">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Customer Reviews</h2>
+            <div class="flex flex-col gap-6">
+                <!-- Individual Review 1 -->
+                <div class="p-4 rounded-lg fluid-element-bg review-card">
+                    <div class="flex items-center mb-2">
+                        <span class="text-yellow-500 text-lg">★★★★★</span>
+                        <span class="font-semibold text-gray-800 ml-2">Amazing Quality!</span>
+                    </div>
+                    <p class="text-gray-700 mb-2">"This t-shirt exceeded my expectations. The fabric is *incredibly soft and comfortable*, and the fit is just perfect. It holds up well after multiple washes too!"</p>
+                    <p class="text-gray-600 text-sm">- Jane Doe, Verified Buyer</p>
+                </div>
+                <!-- Individual Review 2 -->
+                <div class="p-4 rounded-lg fluid-element-bg review-card">
+                    <div class="flex items-center mb-2">
+                        <span class="text-yellow-500 text-lg">★★★★☆</span>
+                        <span class="font-semibold text-gray-800 ml-2">Great Everyday Tee</span>
+                    </div>
+                    <p class="text-gray-700 mb-2">"Really like this shirt for *casual wear*. It's breathable and doesn't wrinkle easily. Only minor thing is I wish there were more color options."</p>
+                    <p class="text-gray-600 text-sm">- John Smith</p>
+                </div>
+                <!-- Individual Review 3 -->
+                <div class="p-4 rounded-lg fluid-element-bg review-card">
+                    <div class="flex items-center mb-2">
+                        <span class="text-yellow-500 text-lg">★★★★★</span>
+                        <span class="font-semibold text-gray-800 ml-2">My New Favorite!</span>
+                    </div>
+                    <p class="text-gray-700 mb-2">"Seriously, buy this shirt. The organic cotton feels luxurious, and the cut is so flattering. I'm already planning to get it in more colors!"</p>
+                    <p class="text-gray-600 text-sm">- Emily R.</p>
+                </div>
+                <!-- Individual Review 4 -->
+                <div class="p-4 rounded-lg fluid-element-bg review-card">
+                    <div class="flex items-center mb-2">
+                        <span class="text-yellow-500 text-lg">★★★☆☆</span>
+                        <span class="font-semibold text-gray-800 ml-2">Decent for the Price</span>
+                    </div>
+                    <p class="text-gray-700 mb-2">"It's a good basic tee. Nothing spectacular but gets the job done. Material is soft, but it's a bit thinner than I expected."</p>
+                    <p class="text-gray-600 text-sm">- Mark T.</p>
+                </div>
+            </div>
+            <button class="mt-8 px-6 py-3 bg-blue-600 text-white rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-300">
+                Write a Review
+            </button>
+        </div>
+
+        <!-- Related Products Section (Placeholder) -->
+        <div class="mt-12 related-products-section">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-6">You Might Also Like</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Related Product Card 1 -->
+                <div class="flex flex-col items-center text-center p-4 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer related-product-card">
+                    <img src="https://placehold.co/300x400/D0D0D0/555555?text=Classic+Jeans" alt="Classic Denim Jeans" class="w-full h-40 object-cover mb-4 rounded-md">
+                    <h3 class="text-lg font-medium text-gray-800">Classic Denim Jeans</h3>
+                    <p class="text-gray-600">$59.99</p>
+                </div>
+                <!-- Related Product Card 2 -->
+                <div class="flex flex-col items-center text-center p-4 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer related-product-card">
+                    <img src="https://placehold.co/300x400/D0D0D0/555555?text=Cozy+Hoodie" alt="Cozy Hoodie" class="w-full h-40 object-cover mb-4 rounded-md">
+                    <h3 class="text-lg font-medium text-gray-800">Cozy Hoodie</h3>
+                    <p class="text-gray-600">$44.99</p>
+                </div>
+                <!-- Related Product Card 3 -->
+                <div class="flex flex-col items-center text-center p-4 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer related-product-card">
+                    <img src="https://placehold.co/300x400/D0D0D0/555555?text=Lightweight+Jacket" alt="Lightweight Jacket" class="w-full h-40 object-cover mb-4 rounded-md">
+                    <h3 class="text-lg font-medium text-gray-800">Lightweight Jacket</h3>
+                    <p class="text-gray-600">$79.99</p>
+                </div>
+                <!-- Related Product Card 4 -->
+                <div class="flex flex-col items-center text-center p-4 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer related-product-card">
+                    <img src="https://placehold.co/300x400/D0D0D0/555555?text=Sporty+Sneakers" alt="Sporty Sneakers" class="w-full h-40 object-cover mb-4 rounded-md">
+                    <h3 class="text-lg font-medium text-gray-800">Sporty Sneakers</h3>
+                    <p class="text-gray-600">$89.99</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add to Cart Notification -->
+    <div id="add-to-cart-notification" class="add-to-cart-notification">
+        Item added to cart! 🎉
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button id="scroll-to-top-btn">↑</button>
+
+    <!-- Full-Screen Image Modal -->
+    <div id="full-screen-modal">
+        <div class="modal-content-wrapper">
+            <img id="modal-image" src="" alt="Full Screen Product Image">
+            <div id="modal-image-loading-spinner" class="loading-spinner"></div>
+            <button id="modal-prev-image" class="modal-nav-btn">&lt;</button>
+            <button id="modal-next-image" class="modal-nav-btn">&gt;</button>
+            <button id="modal-close-btn">X</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get references to key DOM elements
+            const mainImage = document.getElementById('main-product-image');
+            const imageLoadingSpinner = document.getElementById('image-loading-spinner');
+            const thumbnailGallery = document.getElementById('thumbnail-gallery');
+            const prevButton = document.getElementById('prev-image');
+            const nextButton = document.getElementById('next-image');
+            const sizeOptions = document.querySelectorAll('.size-option');
+            const colorOptions = document.querySelectorAll('.color-option');
+            const quantityInput = document.getElementById('quantity');
+            const decreaseQuantityBtn = document.getElementById('decrease-quantity');
+            const increaseQuantityBtn = document.getElementById('increase-quantity');
+            const addToCartBtn = document.getElementById('add-to-cart-btn');
+            const buyNowBtn = document.getElementById('buy-now-btn');
+            const notification = document.getElementById('add-to-cart-notification');
+            const sizeChartToggleButton = document.getElementById('size-chart-toggle-button');
+            const sizeChartPopover = document.getElementById('size-chart-popover');
+            const popoverSizeChartContent = document.getElementById('popover-size-chart-content');
+            const inlineSizeChartContainer = document.getElementById('inline-size-chart-container');
+            const inlineSizeChartContent = document.getElementById('inline-size-chart-content');
+            const scrollToTopBtn = document.getElementById('scroll-to-top-btn');
+            const productImageSection = document.getElementById('product-image-section'); // The specific section to tint
+            
+            // Full-screen modal elements
+            const fullScreenModal = document.getElementById('full-screen-modal');
+            const modalImage = document.getElementById('modal-image');
+            const modalImageLoadingSpinner = document.getElementById('modal-image-loading-spinner');
+            const modalPrevButton = document.getElementById('modal-prev-image');
+            const modalNextButton = document.getElementById('modal-next-image');
+            const modalCloseButton = document.getElementById('modal-close-btn');
+
+            const root = document.documentElement; // Get the root HTML element for CSS variables
+
+            // --- Section for Product Images (Main Carousel and Thumbnails) ---
+            // Replace these placeholder URLs with your actual product image URLs or Base64 data.
+            // Ensure these images have distinct dominant colors to see the dynamic background in action.
+            const productImages = [
+                // Placeholder image for a blue t-shirt (front)
+                'PICS/back tokito.png',
+                // Placeholder image for a red t-shirt (back)
+                'PICS/billie back.png',
+                // Placeholder image for a green t-shirt (detail shot)
+                'PICS/billie front.png',
+                // Placeholder image for an orange t-shirt (lifestyle fit)
+                'PICS/cha.png',
+                // Placeholder image for a brown t-shirt (side angle)
+                'PICS/into spidy.png',
+                // Placeholder image for a purple t-shirt (fabric close-up)
+                'PICS/spidy front.png'
+            ];
+            // --- End Product Images Section ---
+
+            // --- Section for High-Resolution Product Gallery Images ---
+            // Add your 4K image URLs here. These images are displayed one below the other.
+            const highResGalleryImages = [
+                'PICS/max back.png', // Example: Fabric texture
+                'PICS/max front.png', // Example: Stitching quality
+                'PICS/nanmi front.png', // Example: Model wearing in natural light
+                'PICS/nanmi.png' // Example: Durability demonstration
+            ];
+            // --- End High-Resolution Product Gallery Images Section ---
+
+            let currentImageIndex = 0;
+
+            // Sample Size Chart Data (can be expanded or made dynamic)
+            const sizeChartData = {
+                'T-Shirts': [
+                    { size: 'S', chest: '34-36"', length: '27"' },
+                    { size: 'M', chest: '38-40"', length: '28"' },
+                    { size: 'L', chest: '42-44"', length: '29"' },
+                    { size: 'XL', chest: '46-48"', length: '30"' },
+                    { size: 'XXL', chest: '50-52"', length: '31"' }
+                ],
+                'Jeans': [
+                    { size: '28', waist: '28"', inseam: '30/32/34"' },
+                    { size: '30', waist: '30"', inseam: '30/32/34"' },
+                    { size: '32', waist: '32"', inseam: '30/32/34"' },
+                    { size: '34', waist: '34"', inseam: '30/32/34"' },
+                    { size: '36', waist: '36"', inseam: '30/32/34"' }
+                ]
+            };
+
+            /**
+             * Extracts the dominant color from an image using a canvas.
+             * Displays a loading spinner during the process.
+             * @param {string} imageUrl The URL (or base64 data URL) of the image.
+             * @param {function(string): void} callback The callback function to receive the RGB string (e.g., "255, 120, 50").
+             * @param {HTMLElement} spinnerElement The spinner to show/hide.
+             */
+            function getDominantColor(imageUrl, callback, spinnerElement) {
+                if (spinnerElement) spinnerElement.classList.add('show'); // Show spinner
+                const img = new Image();
+                img.crossOrigin = "Anonymous"; // Important for preventing CORS issues when reading pixel data
+                img.src = imageUrl;
+
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    // Scale down image for faster processing, but maintain aspect ratio
+                    const aspectRatio = img.height / img.width;
+                    const newWidth = 100; // Process a 100px wide version
+                    const newHeight = newWidth * aspectRatio;
+                    canvas.width = newWidth;
+                    canvas.height = newHeight;
+                    ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+                    try {
+                        const imageData = ctx.getImageData(0, 0, newWidth, newHeight).data;
+                        let r = 0, g = 0, b = 0;
+                        let count = 0;
+                        // Sample every 10th pixel (R,G,B,A, so skip 4*10 bytes) for performance
+                        const step = 4 * 10; 
+
+                        for (let i = 0; i < imageData.length; i += step) {
+                            r += imageData[i];
+                            g += imageData[i + 1];
+                            b += imageData[i + 2];
+                            count++;
+                        }
+
+                        r = Math.floor(r / count);
+                        g = Math.floor(g / count);
+                        b = Math.floor(b / count);
+
+                        callback(`${r}, ${g}, ${b}`);
+                    } catch (e) {
+                        console.error("Could not get image data due to CORS or other error:", e);
+                        // Fallback to a default subtle color if image data cannot be read
+                        callback('248, 248, 248'); 
+                    } finally {
+                        if (spinnerElement) spinnerElement.classList.remove('show'); // Hide spinner
+                    }
+                };
+
+                img.onerror = () => {
+                    console.error("Image failed to load:", imageUrl);
+                    callback('248, 248, 248'); // Fallback to a default subtle color on load error
+                    if (spinnerElement) spinnerElement.classList.remove('show'); // Hide spinner on error
+                };
+            }
+
+            /**
+             * Applies the extracted dominant color to the target elements via CSS variables.
+             * @param {string} rgbString The RGB color string (e.g., "255, 120, 50").
+             */
+            function applyDynamicColors(rgbString) {
+                const [r, g, b] = rgbString.split(',').map(Number);
+                
+                // Dynamically set background color and border color for the product image section only
+                if (productImageSection) {
+                    productImageSection.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.3)`; // Increased alpha
+                    productImageSection.style.borderColor = `rgba(${r}, ${g}, ${b}, 0.5)`; // Increased alpha
+                }
+
+                // Also apply dynamic background to the full-screen modal
+                if (fullScreenModal) {
+                    fullScreenModal.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.8)`; // More opaque for modal
+                }
+                
+                // Set CSS variables at the root for border tinting of other elements
+                root.style.setProperty('--border-color-r', r);
+                root.style.setProperty('--border-color-g', g);
+                root.style.setProperty('--border-color-b', b);
+            }
+
+            /**
+             * Renders the size chart into a specified container element based on product type.
+             * @param {HTMLElement} containerElement The DOM element to render the size chart into.
+             * @param {string} productType The type of product (e.g., 'T-Shirts', 'Jeans').
+             */
+            function renderSizeChart(containerElement, productType) {
+                const data = sizeChartData[productType];
+                if (!data) {
+                    containerElement.innerHTML = '<p class="text-red-500">Size chart not available for this product type.</p>';
+                    return;
+                }
+
+                let tableHtml = '<table class="w-full text-left border-collapse">';
+                tableHtml += '<thead><tr>';
+                // Create table headers from the first item's keys
+                for (const key in data[0]) {
+                    tableHtml += `<th class="py-2 px-4 bg-gray-100/70 border-b border-gray-200/70">${key.charAt(0).toUpperCase() + key.slice(1)}</th>`;
+                }
+                tableHtml += '</tr></thead><tbody>';
+
+                // Populate table rows
+                data.forEach(row => {
+                    tableHtml += '<tr>';
+                    for (const key in row) {
+                        tableHtml += `<td class="py-2 px-4 border-b border-200/70">${row[key]}</td>`;
+                    }
+                    tableHtml += '</tr>';
+                });
+
+                tableHtml += '</tbody></table>';
+                containerElement.innerHTML = tableHtml;
+            }
+
+            /**
+             * Initializes the thumbnail gallery by creating image elements for each product image.
+             */
+            function initializeThumbnails() {
+                thumbnailGallery.innerHTML = ''; // Clear existing thumbnails
+                productImages.forEach((imageSrc, index) => {
+                    const img = document.createElement('img');
+                    img.src = imageSrc;
+                    img.alt = `Thumbnail ${index + 1}`;
+                    img.classList.add('w-20', 'h-20', 'object-cover', 'rounded-md', 'border-2', 'border-transparent', 'cursor-pointer', 'hover:border-blue-500', 'transition-all');
+                    img.addEventListener('click', () => {
+                        updateMainImage(index);
+                    });
+                    thumbnailGallery.appendChild(img);
+                });
+            }
+
+            /**
+             * Updates the main product image and highlights the active thumbnail.
+             * Also triggers dynamic color adaptation based on the new image.
+             * @param {number} index The index of the image to display.
+             */
+            function updateMainImage(index) {
+                mainImage.src = productImages[index];
+                currentImageIndex = index;
+                // Remove active class from all thumbnails
+                document.querySelectorAll('#thumbnail-gallery img').forEach(img => {
+                    img.classList.remove('border-blue-600');
+                });
+                // Add active class to current thumbnail, only if it exists
+                if (thumbnailGallery.children[index]) {
+                    thumbnailGallery.children[index].classList.add('border-blue-600');
+                }
+                // Update theme based on new image, using the main image spinner
+                getDominantColor(productImages[index], applyDynamicColors, imageLoadingSpinner);
+            }
+
+            // Event listener for previous image button
+            prevButton.addEventListener('click', () => {
+                let newIndex = currentImageIndex - 1;
+                if (newIndex < 0) {
+                    newIndex = productImages.length - 1;
+                }
+                updateMainImage(newIndex);
+            });
+
+            // Event listener for next image button
+            nextButton.addEventListener('click', () => {
+                let newIndex = currentImageIndex + 1;
+                if (newIndex >= productImages.length) {
+                    newIndex = 0;
+                }
+                updateMainImage(newIndex);
+            });
+
+            // Initialize main image and thumbnails in the correct order on load
+            initializeThumbnails(); 
+            updateMainImage(0);     
+
+            // Size selection functionality
+            sizeOptions.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove selected styling from all size options
+                    sizeOptions.forEach(btn => btn.classList.remove('selected'));
+                    // Add selected styling to the clicked button
+                    button.classList.add('selected');
+                    console.log('Selected Size:', button.dataset.size);
+                    // In a real app, this would trigger stock checks or image changes
+                });
+
+                // Popover hover events for desktop size chart
+                button.addEventListener('mouseenter', () => {
+                    // Check if screen is large enough for hover popover (Tailwind 'lg' breakpoint is typically 1024px)
+                    if (window.innerWidth >= 1024) {
+                        renderSizeChart(popoverSizeChartContent, 'T-Shirts'); // Render into popover
+                        sizeChartPopover.classList.add('show');
+                    }
+                });
+
+                button.addEventListener('mouseleave', () => {
+                    if (window.innerWidth >= 1024) {
+                        sizeChartPopover.classList.remove('show');
+                    }
+                });
+            });
+
+            // Set initial selected size (e.g., the first one)
+            if (sizeOptions.length > 0) {
+                sizeOptions[0].click();
+            }
+
+            // Color selection functionality
+            colorOptions.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove selected styling from all color options
+                    colorOptions.forEach(btn => btn.classList.remove('border-blue-600', 'ring-2', 'ring-offset-2', 'ring-blue-500'));
+                    // Add selected styling to the clicked button
+                    button.classList.add('border-blue-600', 'ring-2', 'ring-offset-2', 'ring-blue-500');
+                    console.log('Selected Color:', button.dataset.color);
+                    // In a real app, this would trigger image changes to the chosen color
+                });
+            });
+
+            // Set initial selected color (e.g., the first one)
+            if (colorOptions.length > 0) {
+                colorOptions[0].click();
+            }
+
+            // Quantity controls
+            decreaseQuantityBtn.addEventListener('click', () => {
+                let quantity = parseInt(quantityInput.value);
+                if (quantity > 1) {
+                    quantityInput.value = quantity - 1;
+                }
+            });
+
+            increaseQuantityBtn.addEventListener('click', () => {
+                let quantity = parseInt(quantityInput.value);
+                quantityInput.value = quantity + 1;
+            });
+
+            // Add to Cart functionality
+            addToCartBtn.addEventListener('click', () => {
+                const selectedSize = document.querySelector('.size-option.selected')?.dataset.size || 'N/A'; // Use .selected
+                const selectedColor = document.querySelector('.color-option.border-blue-600')?.dataset.color || 'N/A';
+                const quantity = quantityInput.value;
+
+                console.log(`Added to cart:
+                    Product: Essential Cotton T-Shirt
+                    Size: ${selectedSize}
+                    Color: ${selectedColor}
+                    Quantity: ${quantity}`);
+
+                // Show notification and add button animation
+                notification.classList.add('show');
+                addToCartBtn.classList.add('clicked'); 
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    addToCartBtn.classList.remove('clicked'); 
+                }, 3000); // Hide after 3 seconds
+            });
+
+            // Buy Now functionality (simulated quick checkout)
+            buyNowBtn.addEventListener('click', () => {
+                const selectedSize = document.querySelector('.size-option.selected')?.dataset.size || 'N/A'; // Use .selected
+                const selectedColor = document.querySelector('.color-option.border-blue-600')?.dataset.color || 'N/A';
+                const quantity = quantityInput.value;
+
+                console.log(`Buying now:
+                    Product: Essential Cotton T-Shirt
+                    Size: ${selectedSize}
+                    Color: ${selectedColor}
+                    Quantity: ${quantity}`);
+                
+                // In a real application, this would redirect to a checkout page or trigger an immediate purchase flow.
+                // Using alert() here for demonstration; for production, use a custom modal UI.
+                alert("Proceeding to checkout with your selection!"); 
+            });
+
+            // Inline Size Chart Toggle for Mobile/Tablet
+            sizeChartToggleButton.addEventListener('click', () => {
+                if (inlineSizeChartContainer.classList.contains('show')) {
+                    inlineSizeChartContainer.classList.remove('show');
+                    sizeChartToggleButton.textContent = 'View Size Chart';
+                } else {
+                    renderSizeChart(inlineSizeChartContent, 'T-Shirts'); // Render into inline container
+                    inlineSizeChartContainer.classList.add('show');
+                    sizeChartToggleButton.textContent = 'Hide Size Chart';
+                }
+            });
+
+            // Scroll to Top button logic (shows/hides based on scroll position)
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 200) { // Show button after scrolling 200px
+                    scrollToTopBtn.classList.add('show');
+                } else {
+                    scrollToTopBtn.classList.remove('show');
+                }
+            });
+
+            // Smooth scroll to top when button is clicked
+            scrollToTopBtn.addEventListener('click', () => {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth' 
+                });
+            });
+
+            // Dynamically load high-res gallery images into their section
+            const highResGalleryContainer = document.querySelector('#high-res-gallery .flex.flex-col.gap-8');
+            highResGalleryContainer.innerHTML = ''; // Clear any existing placeholders
+            highResGalleryImages.forEach((imageUrl, index) => {
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                img.alt = `High Resolution Detail ${index + 1}`;
+                img.classList.add('w-full', 'rounded-lg', 'high-res-image');
+                highResGalleryContainer.appendChild(img);
+            });
+
+            // --- Full-Screen Modal Logic ---
+
+            /**
+             * Opens the full-screen modal with the current image.
+             * @param {number} index The index of the image to display in the modal.
+             */
+            function openFullScreenModal(index) {
+                modalImage.src = productImages[index];
+                currentImageIndex = index; // Keep modal and main gallery in sync
+                fullScreenModal.classList.add('show');
+                document.body.style.overflow = 'hidden'; // Prevent scrolling background content
+                getDominantColor(productImages[index], (rgb) => {
+                    fullScreenModal.style.backgroundColor = `rgba(${rgb}, 0.8)`; // Apply transparent tint to modal
+                }, modalImageLoadingSpinner);
+
+                // Reset zoom on open
+                modalImage.style.transform = 'scale(1)';
+                modalImage.style.transformOrigin = 'center center';
+            }
+
+            /**
+             * Closes the full-screen modal.
+             */
+            function closeFullScreenModal() {
+                fullScreenModal.classList.remove('show');
+                document.body.style.overflow = ''; // Restore scrolling
+            }
+
+            /**
+             * Navigates to the next/previous image in the full-screen modal.
+             * @param {number} direction - 1 for next, -1 for previous.
+             */
+            function navigateModalImage(direction) {
+                let newIndex = currentImageIndex + direction;
+                if (newIndex < 0) {
+                    newIndex = productImages.length - 1;
+                } else if (newIndex >= productImages.length) {
+                    newIndex = 0;
+                }
+                modalImage.src = productImages[newIndex];
+                currentImageIndex = newIndex;
+                getDominantColor(productImages[newIndex], (rgb) => {
+                    fullScreenModal.style.backgroundColor = `rgba(${rgb}, 0.8)`;
+                }, modalImageLoadingSpinner);
+                // Reset zoom on navigation
+                modalImage.style.transform = 'scale(1)';
+                modalImage.style.transformOrigin = 'center center';
+            }
+
+            // Double-click event on main product image to open modal
+            mainImage.addEventListener('dblclick', () => {
+                openFullScreenModal(currentImageIndex);
+            });
+
+            // Modal navigation button event listeners
+            modalPrevButton.addEventListener('click', () => navigateModalImage(-1));
+            modalNextButton.addEventListener('click', () => navigateModalImage(1));
+            modalCloseButton.addEventListener('click', closeFullScreenModal);
+
+            // Close modal with Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && fullScreenModal.classList.contains('show')) {
+                    closeFullScreenModal();
+                }
+            });
+
+            // Zoom functionality for modal image on hover
+            let zoomLevel = 1;
+            modalImage.addEventListener('mousemove', (e) => {
+                if (zoomLevel > 1) { // Only zoom if already zoomed in, or if we want continuous zoom
+                    const rect = modalImage.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) / rect.width;
+                    const y = (e.clientY - rect.top) / rect.height;
+                    modalImage.style.transformOrigin = `${x * 100}% ${y * 100}%`;
+                    modalImage.style.transform = `scale(${zoomLevel})`;
+                }
+            });
+
+            // Toggle zoom on image click within the modal
+            modalImage.addEventListener('click', () => {
+                if (zoomLevel === 1) {
+                    zoomLevel = 1.8; // Zoom in factor
+                    modalImage.classList.add('zoomed');
+                } else {
+                    zoomLevel = 1; // Zoom out
+                    modalImage.classList.remove('zoomed');
+                    modalImage.style.transformOrigin = 'center center'; // Reset origin
+                }
+                modalImage.style.transform = `scale(${zoomLevel})`;
+            });
+
+            modalImage.addEventListener('mouseleave', () => {
+                // If you want it to zoom out on mouse leave, enable this:
+                // zoomLevel = 1;
+                // modalImage.classList.remove('zoomed');
+                // modalImage.style.transform = 'scale(1)';
+                // modalImage.style.transformOrigin = 'center center';
+            });
+        });
+    </script>
+</body>
+</html>
